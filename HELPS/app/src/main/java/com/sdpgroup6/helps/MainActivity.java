@@ -1,5 +1,7 @@
 package com.sdpgroup6.helps;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -12,9 +14,25 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.TextView;
+
+import java.io.IOException;
+import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
 
 public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+        implements NavigationView.OnNavigationItemSelectedListener, View.OnClickListener{
+
+    public static String ENDPOINT = "http://101.164.90.74";
+    private TextView tv;
+    private WorkshopsAPI api;
+    Retrofit retrofit;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,14 +41,10 @@ public class MainActivity extends AppCompatActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        tv = (TextView) findViewById(R.id.mytextview);
+
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
+        fab.setOnClickListener(this);
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -40,6 +54,14 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+//        requestData();
+        retrofit = new Retrofit.Builder()
+                .baseUrl(ENDPOINT)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        api = retrofit.create(WorkshopsAPI.class);
     }
 
     @Override
@@ -97,5 +119,61 @@ public class MainActivity extends AppCompatActivity
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    private void requestData(){
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(ENDPOINT)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        api = retrofit.create(WorkshopsAPI.class);
+
+
+//        Call<Workshops> workshopsCall = api.getWorkshops();
+//        Response<Workshops> workshopsResponse = null;
+//        try {
+//            workshopsResponse = workshopsCall.execute();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        if (workshopsResponse != null) {
+//            Workshops workshops = workshopsResponse.body();
+//        }
+
+    }
+
+    @Override
+    public void onClick(View v) {
+        loadWorkshops();
+    }
+
+    private void loadWorkshops(){
+        Call<Workshops> call = api.getWorkshops("HDgroup6", "Application/json");
+        call.enqueue(new Callback<Workshops>() {
+            @Override
+            public void onResponse(Call<Workshops> call, Response<Workshops> response) {
+                Workshops workshops = response.body();
+                display(workshops);
+            }
+
+            @Override
+            public void onFailure(Call<Workshops> call, Throwable t) {
+                display("failed");
+                display(t.getMessage());
+            }
+        });
+    }
+
+    private void display(String s){
+        tv.append(s);
+    }
+
+    private void display(Workshops workshops){
+        String s = "";
+        for(Workshop workshop: workshops.getWorkshops()){
+            s += workshop.getName() + "\n";
+        }
+        tv.append(s);
     }
 }
